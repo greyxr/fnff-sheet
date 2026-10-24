@@ -89,7 +89,7 @@
     <div class="stack">
       <input type="search" aria-label="Search the rules" placeholder="Search the rules" bind:value={query} oninput={onInput} />
 
-      {#if query.trim()}
+      {#if query.trim() && !route.section}
         {#each results as r (r.section.id)}
           <a class="hit" href="#rules/{encodeURIComponent(r.section.id)}">
             <span class="title">{r.section.title}</span>
