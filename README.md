@@ -22,7 +22,7 @@ Everything else (`screens/`, `shell/`, `lib/`) is the sheet that uses it.
 2. **Rules text**: `python3 tools/build_rules.py`, then
    `aws s3 cp ~/fnff_reference/ruleset.json s3://<bucket>/ruleset.json`. Without it the Rules tab and the weapon and
    armor pickers stay empty.
-3. **GitHub**: Pages source = GitHub Actions, and a repository *variable* `VITE_GROUP_API_URL` set to the Function
-   URL. Pushing to `main` checks, tests, builds and deploys.
+3. **GitHub**: Pages source = GitHub Actions, and a repository *secret* `VITE_GROUP_API_URL` set to the Function
+   URL (a secret so it stays out of the public logs). Pushing to `main` checks, tests, builds and deploys.
 
 Players enter the group password once per browser; it is kept in `localStorage` and sent with every API call.
