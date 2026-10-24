@@ -1,0 +1,22 @@
+# Terraform state and secrets
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+terraform/handler.zip
+
+# Private book data
+ruleset*.json
+rules*.json
+
+# Build output, dependencies, local config
+node_modules/
+dist/
+*.local
+*.log
+__pycache__/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,270 @@
+/* Shared look of the sheet: colours, type, and the controls every screen uses. */
+:root {
+  --bg-deep: #0d0e11;
+  --bg-panel: #13151a;
+  --bg-raised: #1a1d24;
+  --border: #2a2d38;
+  --border-bright: #4a5060;
+  --green: #4a8a6a;
+  --green-bright: #6abf90;
+  --green-dim: #0e2018;
+  --amber: #c8a84a;
+  --amber-dim: #3a2e10;
+  --red: #d04a4a;
+  --red-dim: #3a1010;
+  --accent: #c8a84a;
+  --text: #b8c0d0;
+  --text-bright: #e4eaf5;
+  --text-dim: #7a849e;
+  /* wound levels, mildest to worst */
+  --wound-none: var(--green-bright);
+  --wound-fw: #7aaa50;
+  --wound-sw: #c0a030;
+  --wound-cw: #d07030;
+  --wound-mw: #d03050;
+  --wound-d: #f01010;
+  --mono: 'Share Tech Mono', ui-monospace, Consolas, monospace;
+  --display: 'Oswald', 'Arial Narrow', sans-serif;
+  color-scheme: dark;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  scrollbar-color: var(--border-bright) var(--bg-deep);
+  scrollbar-width: thin;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-deep);
+  color: var(--text);
+  font: 13px/1.5 var(--mono);
+}
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+a {
+  color: var(--accent);
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ---- form fields ---- */
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 8px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--text-bright);
+}
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--border-bright);
+}
+::placeholder {
+  color: var(--text-dim);
+}
+textarea {
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.6;
+}
+input[type='checkbox'] {
+  width: auto;
+  min-height: 0;
+  accent-color: var(--accent);
+}
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[type='number']::-webkit-inner-spin-button {
+  display: none;
+}
+
+/* a small caption above a field */
+.label {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* ---- shared chrome: titles, boxes and their header bars ---- */
+.hd {
+  font: 600 13px var(--display);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.box {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  min-height: 40px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---- buttons ---- */
+.btn {
+  min-height: 34px;
+  padding: 5px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.btn.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn.danger {
+  border-color: var(--red);
+  color: var(--red);
+}
+.btn.danger:hover:not(:disabled) {
+  background: var(--red-dim);
+}
+.btn.on {
+  background: var(--amber-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn.icon {
+  min-width: 34px;
+  padding: 5px 8px;
+}
+
+/* ---- layout helpers ---- */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 700px) {
+  .grid,
+  .grid.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.muted {
+  color: var(--text-dim);
+}
+.empty {
+  padding: 18px 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+.error {
+  color: var(--red);
+}
+
+/* a total with the terms it was built from */
+.total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+}
+.total strong {
+  min-width: 52px;
+  font: 700 36px var(--display);
+  color: var(--accent);
+}
+
+/* text colour for each wound level */
+.w-none {
+  color: var(--wound-none);
+}
+.w-FW {
+  color: var(--wound-fw);
+}
+.w-SW {
+  color: var(--wound-sw);
+}
+.w-CW {
+  color: var(--wound-cw);
+}
+.w-MW {
+  color: var(--wound-mw);
+}
+.w-D {
+  color: var(--wound-d);
+}
