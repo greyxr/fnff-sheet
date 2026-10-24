@@ -19,8 +19,6 @@ jobs:
     defaults:
       run:
         working-directory: app
-    env:
-      VITE_GROUP_API_URL: ${{ secrets.VITE_GROUP_API_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,8 +30,12 @@ jobs:
       - run: npm run check
       - run: npm run lint
       - run: npm test
-      - run: test -n "$VITE_GROUP_API_URL" || { echo "Set the VITE_GROUP_API_URL repository secret (Settings > Secrets and variables > Actions > Secrets)"; exit 1; }
-      - run: npm run build
+      - env:
+          VITE_GROUP_API_URL: ${{ secrets.VITE_GROUP_API_URL }}
+        run: test -n "$VITE_GROUP_API_URL" || { echo "Set the VITE_GROUP_API_URL repository secret (Settings > Secrets and variables > Actions > Secrets)"; exit 1; }
+      - env:
+          VITE_GROUP_API_URL: ${{ secrets.VITE_GROUP_API_URL }}
+        run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

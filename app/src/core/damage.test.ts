@@ -13,6 +13,7 @@ describe('rollDice', () => {
   it('adds the dice and the modifier', () => {
     expect(rollDice('2D6+1', seq(3, 4))).toEqual({ total: 8, rolls: [3, 4] })
     expect(rollDice('3D6-2', seq(1, 1, 1)).total).toBe(1)
+    expect(() => rollDice('999999999D6')).toThrow()
   })
 })
 

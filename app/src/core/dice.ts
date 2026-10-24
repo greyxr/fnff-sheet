@@ -6,10 +6,12 @@ export const defaultRoller: Roller = (sides) => 1 + Math.floor(Math.random() * s
 
 export const d10 = (roll: Roller = defaultRoller) => roll(10)
 
+const MAX_DICE = 100 // a shared character's damage text must not be able to freeze the page
+
 // "2D6+1", "3D6-2", "1D6/2": the forms weapons use. A divisor rounds the dice down; the modifier is added after.
 export function rollDice(expr: string, roll: Roller = defaultRoller): { total: number; rolls: number[] } {
   const m = /^\s*(\d+)D(\d+)\s*([+-]\s*\d+)?\s*(?:\/\s*(\d+))?\s*$/i.exec(expr)
-  if (!m) throw new Error(`Not a dice expression: ${expr}`)
+  if (!m || Number(m[1]) > MAX_DICE) throw new Error(`Not a dice expression: ${expr}`)
   const rolls = Array.from({ length: Number(m[1]) }, () => roll(Number(m[2])))
   const sum = rolls.reduce((a, b) => a + b, 0)
   return { total: Math.floor(sum / Number(m[4] ?? 1)) + Number((m[3] ?? '0').replace(/\s/g, '')), rolls }
