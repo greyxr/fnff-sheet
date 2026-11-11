@@ -17,17 +17,21 @@ export class ApiError extends Error {
   }
 }
 
-// A 401 means the password is no good: forget it, which brings the gate back.
-export async function call<T>(method: string, url: string, body?: unknown, password = auth.password): Promise<T> {
+// A 401 means the token ran out: get a fresh one and try again, or sign out, which brings the gate back.
+export async function call<T>(method: string, url: string, body?: unknown, retry = true): Promise<T> {
   const res = await fetch(apiBase() + url, {
     method,
-    headers: { Authorization: password, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    headers: { Authorization: `Bearer ${auth.token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (res.status === 401) {
+    if (retry && (await auth.refresh())) return call(method, url, body, false)
     auth.clear()
-    throw new ApiError('Wrong password', 401)
+    throw new ApiError('Signed out: sign in again', 401)
   }
-  if (!res.ok) throw new ApiError((await res.json().catch(() => null))?.error || `Server error ${res.status}`, res.status)
+  if (!res.ok) {
+    const reply = await res.json().catch(() => null)
+    throw new ApiError(reply?.error || reply?.message || `Server error ${res.status}`, res.status)
+  }
   return (res.status === 204 ? null : await res.json()) as T
 }

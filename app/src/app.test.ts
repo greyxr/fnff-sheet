@@ -4,6 +4,7 @@ import { auth } from './lib/auth.svelte'
 import { roster } from './lib/roster.svelte'
 import { sheet } from './lib/sheet.svelte'
 import App from './App.svelte'
+import Header from './shell/Header.svelte'
 import RosterBar from './shell/RosterBar.svelte'
 import { fakeApi, resetApp, typing } from './test-utils'
 
@@ -35,17 +36,36 @@ describe('roster bar', () => {
 })
 
 describe('gate', () => {
-  it('stays up on a wrong password, and lets the right one in', async () => {
+  it('keeps a new account out until it is approved', async () => {
     const user = typing()
     auth.clear()
+    auth.set('token-kai')
     render(App)
-    await user.type(screen.getByLabelText('Password'), 'nope')
-    await user.click(screen.getByRole('button', { name: 'Enter' }))
-    expect(await screen.findByText('Wrong password')).toBeInTheDocument()
-    expect(auth.password).toBe('')
-    await user.clear(screen.getByLabelText('Password'))
-    await user.type(screen.getByLabelText('Password'), fakeApi.password)
-    await user.click(screen.getByRole('button', { name: 'Enter' }))
-    await screen.findByRole('button', { name: 'Lock' })
+    await user.click(await screen.findByRole('button', { name: 'Request access' }))
+    expect(await screen.findByText('Your request is waiting for approval.')).toBeInTheDocument()
+    expect(fakeApi.users['2']).toMatchObject({ email: 'kai@test', status: 'pending' })
+    fakeApi.users['2'].status = 'approved'
+    await user.click(screen.getByRole('button', { name: 'Check again' }))
+    await screen.findByRole('button', { name: 'Sign out' })
+  })
+
+  it('asks to sign in again when the token is no longer good', async () => {
+    auth.clear()
+    auth.set('stale')
+    render(App)
+    expect(await screen.findByText('Sign in with your Google account.')).toBeInTheDocument()
+    expect(auth.token).toBe('')
+  })
+})
+
+describe('accounts', () => {
+  it('lets the admin approve a waiting account', async () => {
+    const user = typing()
+    fakeApi.users['2'] = { email: 'kai@test', name: 'Kai', status: 'pending' }
+    render(Header)
+    await user.click(await screen.findByRole('button', { name: 'Accounts (1)' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Approve' }))
+    await waitFor(() => expect(fakeApi.users['2'].status).toBe('approved'))
+    expect(screen.getByRole('button', { name: 'Accounts' })).toBeInTheDocument()
   })
 })
