@@ -4,7 +4,7 @@ declare const google: {
   accounts: {
     id: {
       initialize(options: { client_id: string; auto_select: boolean; callback: (response: { credential: string }) => void }): void
-      renderButton(parent: HTMLElement, options: { theme: string; size: string }): void
+      renderButton(parent: HTMLElement, options: { theme: string; size: string; width: number }): void
       prompt(): void
       disableAutoSelect(): void
     }
@@ -76,7 +76,7 @@ class Auth {
   }
   async showButton(parent: HTMLElement) {
     await loadGoogle()
-    google.accounts.id.renderButton(parent, { theme: 'filled_black', size: 'large' })
+    google.accounts.id.renderButton(parent, { theme: 'filled_black', size: 'large', width: parent.clientWidth })
   }
 
   // Google's tokens last an hour: ask for a fresh one without a click. False if Google wants the user to choose.
