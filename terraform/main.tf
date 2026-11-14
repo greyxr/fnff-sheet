@@ -11,18 +11,14 @@ variable "bucket_name" {
   type = string
 }
 
-variable "parameter_name" {
-  type    = string
-  default = "/ffnf/group_auth"
+variable "google_client_id" {
+  type = string
 }
 
 variable "allowed_origins" {
   type    = list(string)
   default = ["https://greyxr.github.io", "http://127.0.0.1:8000"]
 }
-
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
 
 resource "aws_s3_bucket" "game_data" {
   bucket = var.bucket_name
@@ -82,21 +78,14 @@ resource "aws_iam_role_policy" "bucket" {
   role = aws_iam_role.api.id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-        Resource = [
-          aws_s3_bucket.game_data.arn,
-          "${aws_s3_bucket.game_data.arn}/*",
-        ]
-      },
-      {
-        Effect   = "Allow"
-        Action   = "ssm:GetParameter"
-        Resource = "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter/${trimprefix(var.parameter_name, "/")}"
-      },
-    ]
+    Statement = [{
+      Effect = "Allow"
+      Action = ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+      Resource = [
+        aws_s3_bucket.game_data.arn,
+        "${aws_s3_bucket.game_data.arn}/*",
+      ]
+    }]
   })
 }
 
@@ -112,39 +101,70 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      BUCKET         = aws_s3_bucket.game_data.id
-      PASSWORD_PARAM = var.parameter_name
+      BUCKET = aws_s3_bucket.game_data.id
     }
   }
 }
 
-resource "aws_lambda_function_url" "api" {
-  function_name      = aws_lambda_function.api.function_name
-  authorization_type = "NONE"
+resource "aws_apigatewayv2_api" "api" {
+  name          = "${var.bucket_name}-api"
+  protocol_type = "HTTP"
 
-  cors {
+  cors_configuration {
     allow_origins = var.allowed_origins
     allow_methods = ["GET", "POST", "PUT", "DELETE"]
     allow_headers = ["authorization", "content-type"]
+    max_age       = 3600
   }
 }
 
-resource "aws_lambda_permission" "url" {
-  statement_id           = "PublicUrl"
-  action                 = "lambda:InvokeFunctionUrl"
-  function_name          = aws_lambda_function.api.function_name
-  principal              = "*"
-  function_url_auth_type = "NONE"
+resource "aws_apigatewayv2_authorizer" "google" {
+  api_id           = aws_apigatewayv2_api.api.id
+  name             = "google"
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+
+  jwt_configuration {
+    issuer   = "https://accounts.google.com"
+    audience = [var.google_client_id]
+  }
 }
 
-resource "aws_lambda_permission" "invoke" {
-  statement_id             = "PublicInvoke"
-  action                   = "lambda:InvokeFunction"
-  function_name            = aws_lambda_function.api.function_name
-  principal                = "*"
-  invoked_via_function_url = true
+resource "aws_apigatewayv2_integration" "lambda" {
+  api_id                 = aws_apigatewayv2_api.api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.api.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "api" {
+  for_each           = toset(["GET", "POST", "PUT", "DELETE"])
+  api_id             = aws_apigatewayv2_api.api.id
+  route_key          = "${each.key} /{proxy+}"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.google.id
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.api.id
+  name        = "$default"
+  auto_deploy = true
+
+  default_route_settings {
+    throttling_rate_limit  = 5
+    throttling_burst_limit = 20
+  }
+}
+
+resource "aws_lambda_permission" "gateway" {
+  statement_id  = "ApiGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.api.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*"
 }
 
 output "api_url" {
-  value = aws_lambda_function_url.api.function_url
+  value = aws_apigatewayv2_stage.default.invoke_url
 }

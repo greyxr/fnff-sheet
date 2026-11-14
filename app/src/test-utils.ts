@@ -7,9 +7,10 @@ import { roster } from './lib/roster.svelte'
 import { loadCharacter } from './lib/sheet.svelte'
 import type { RosterRecord } from './core'
 
-// An in-memory stand-in for lambda/handler.py: characters and campaigns, 401 unless the password matches.
+// An in-memory stand-in for the API gateway and lambda/handler.py: 401 for an unknown token, 403 off the player list.
 export const fakeApi = {
-  password: 'secret',
+  tokens: { 'token-gm': 'gm@test', 'token-kai': 'kai@test' } as Record<string, string>,
+  allowed: [] as string[],
   records: new Map<string, RosterRecord>(),
   campaigns: [] as string[],
   get stored() {
@@ -17,10 +18,13 @@ export const fakeApi = {
   },
   async fetch(url: string, init: RequestInit = {}) {
     const reply = (status: number, body?: unknown) => new Response(body === undefined ? null : JSON.stringify(body), { status })
-    if ((init.headers as Record<string, string>).Authorization !== this.password) return reply(401, { error: 'Unauthorized' })
+    const email = this.tokens[(init.headers as Record<string, string>).Authorization.replace('Bearer ', '')]
+    if (!email) return reply(401, { message: 'Unauthorized' })
+    if (!this.allowed.includes(email)) return reply(403, { error: `${email} is not on the player list; ask the GM` })
     const [kind, id] = new URL(url).pathname.split('/').filter(Boolean)
     const { method } = init
     const body = init.body ? JSON.parse(init.body as string) : undefined
+    if (kind === 'me') return reply(200, { email })
     if (kind === 'campaigns' && method === 'GET') return reply(200, this.campaigns)
     if (kind === 'campaigns' && method === 'POST') {
       if (this.campaigns.includes(body.name)) return reply(409, { error: 'that campaign already exists' })
@@ -42,7 +46,10 @@ export async function resetApp() {
   vi.stubGlobal('fetch', (url: string, init?: RequestInit) => fakeApi.fetch(url, init))
   fakeApi.records.clear()
   fakeApi.campaigns = []
-  auth.set(fakeApi.password)
+  fakeApi.allowed = ['gm@test']
+  vi.spyOn(auth, 'refresh').mockResolvedValue(false)
+  auth.set('token-gm')
+  auth.me = { email: 'gm@test' }
   loadCharacter(blankCharacter(rs))
   Object.assign(roster, { current: null, filter: '' })
   roster.markClean()

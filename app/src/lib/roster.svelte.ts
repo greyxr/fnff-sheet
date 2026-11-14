@@ -44,9 +44,6 @@ class Roster {
     this.markClean()
   }
 
-  // Whether the server accepts this password (the gate asks before keeping it).
-  check = (password: string) => call('GET', '/characters', undefined, password)
-
   async refresh() {
     const [records, campaigns] = await Promise.all([call<RosterRecord[]>('GET', '/characters'), call<string[]>('GET', '/campaigns')])
     this.records = records
@@ -55,7 +52,7 @@ class Roster {
   }
 
   start = () => {
-    this.markClean()
+    if (!this.loaded) this.markClean()
     return this.attempt(() => this.refresh())
   }
 

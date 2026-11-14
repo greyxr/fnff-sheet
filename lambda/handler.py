@@ -1,4 +1,6 @@
-"""FNFF API behind a Lambda Function URL (every route needs the password in the authorization header).
+"""FNFF API behind an API Gateway HTTP API. The gateway checks the Google ID token; this checks the email is on the
+player list (allowed.json). Anyone else gets 403.
+  GET    /me               200 {"email"}
   GET    /characters       200 [{"id", "data"}]
   PUT    /characters/{id}  204; {id} is a client-chosen lowercase UUID; body: object with charName (1-60 chars) and string charCampaign ("" = none)
   DELETE /characters/{id}  204
@@ -6,9 +8,8 @@
   POST   /campaigns        {"name"} appends; 200 with the list, 409 if it exists
   PUT    /campaigns        body is the whole list (unique names, 1-60 chars); 200 with it
   GET    /ruleset          200 ruleset.json (404 if missing)
-S3: characters/{id}.json, campaigns.json (missing = []), ruleset.json (uploaded separately).
+S3: allowed.json ({"emails": [...]}, missing = nobody), characters/{id}.json, campaigns.json (missing = []), ruleset.json (uploaded separately).
 """
-import hmac
 import json
 import os
 import re
@@ -18,13 +19,13 @@ import boto3
 
 BUCKET = os.environ["BUCKET"]
 s3 = boto3.client("s3")
-ssm = boto3.client("ssm")
-password = ssm.get_parameter(Name=os.environ["PASSWORD_PARAM"], WithDecryption=True)["Parameter"]["Value"]
 
 PREFIX = "characters/"
 CAMPAIGNS = "campaigns.json"
+ALLOWED = "allowed.json"
 ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 MAX_NAME = 60
+MAX_BODY = 100_000
 LIMIT = f"of at most {MAX_NAME} characters"
 
 
@@ -56,11 +57,15 @@ def list_characters():
     return respond(200, chars)
 
 
-def read_campaigns():
+def read_json(key, default):
     try:
-        return json.loads(s3.get_object(Bucket=BUCKET, Key=CAMPAIGNS)["Body"].read())
+        return json.loads(s3.get_object(Bucket=BUCKET, Key=key)["Body"].read())
     except s3.exceptions.NoSuchKey:
-        return []
+        return default
+
+
+def read_campaigns():
+    return read_json(CAMPAIGNS, [])
 
 
 def write_campaigns(names):
@@ -133,11 +138,20 @@ METHODS = {"GET": get, "POST": post, "PUT": put, "DELETE": delete}
 
 
 def handler(event, context):
-    supplied = (event.get("headers") or {}).get("authorization", "")
-    if not password or not hmac.compare_digest(supplied.encode(), password.encode()):   # empty password never authorizes
-        return error(401, "unauthorized")
-    method = METHODS.get(event["requestContext"]["http"]["method"])
+    claims = event["requestContext"]["authorizer"]["jwt"]["claims"]
+    if str(claims.get("email_verified")).lower() != "true":
+        return error(403, "that Google account's email is not verified")
+    email = claims["email"].lower()
+    if email not in [e.lower() for e in read_json(ALLOWED, {}).get("emails", [])]:
+        return error(403, f"{email} is not on the player list")
+    if len(event.get("body") or "") > MAX_BODY:
+        return error(413, "body too large")
+    name = event["requestContext"]["http"]["method"]
+    method = METHODS.get(name)
     if not method:
         return error(405, "method not allowed")
     # split before decoding so an encoded slash can't add path segments
-    return method([unquote(p) for p in event["rawPath"].strip("/").split("/")], event)
+    parts = [unquote(p) for p in event["rawPath"].strip("/").split("/")]
+    if (name, *parts) == ("GET", "me"):
+        return respond(200, {"email": email})
+    return method(parts, event)

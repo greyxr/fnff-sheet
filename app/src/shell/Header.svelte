@@ -38,7 +38,7 @@
   <div class="row">
     <button type="button" class="btn" onclick={exportSheet}>↓ Export</button>
     <button type="button" class="btn" onclick={() => fileInput.click()}>↑ Import</button>
-    <button type="button" class="btn" onclick={() => auth.clear()}>Lock</button>
+    <button type="button" class="btn" title={auth.me?.email} onclick={() => auth.signOut()}>Sign out</button>
     <input type="file" accept=".json,application/json" hidden bind:this={fileInput} onchange={importFile} />
   </div>
 </header>

@@ -35,17 +35,30 @@ describe('roster bar', () => {
 })
 
 describe('gate', () => {
-  it('stays up on a wrong password, and lets the right one in', async () => {
-    const user = typing()
+  it('lets a listed account in and tells an unlisted one which email it used', async () => {
     auth.clear()
+    auth.set('token-kai')
+    const { unmount } = render(App)
+    expect(await screen.findByText('kai@test is not on the player list; ask the GM')).toBeInTheDocument()
+    unmount()
+    auth.set('token-gm')
     render(App)
-    await user.type(screen.getByLabelText('Password'), 'nope')
-    await user.click(screen.getByRole('button', { name: 'Enter' }))
-    expect(await screen.findByText('Wrong password')).toBeInTheDocument()
-    expect(auth.password).toBe('')
-    await user.clear(screen.getByLabelText('Password'))
-    await user.type(screen.getByLabelText('Password'), fakeApi.password)
-    await user.click(screen.getByRole('button', { name: 'Enter' }))
-    await screen.findByRole('button', { name: 'Lock' })
+    await screen.findByRole('button', { name: 'Sign out' })
+  })
+
+  it('asks to sign in again when the token is no longer good', async () => {
+    auth.clear()
+    auth.set('stale')
+    render(App)
+    expect(await screen.findByText('Sign in with your Google account.')).toBeInTheDocument()
+    expect(auth.token).toBe('')
+  })
+
+  it('goes back to the gate when the account is taken off the list', async () => {
+    render(App)
+    await screen.findByRole('button', { name: 'Sign out' })
+    fakeApi.allowed = []
+    await roster.refresh().catch(() => {})
+    expect(await screen.findByText('gm@test is not on the player list; ask the GM')).toBeInTheDocument()
   })
 })

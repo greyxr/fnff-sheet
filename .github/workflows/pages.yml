@@ -30,11 +30,15 @@ jobs:
       - run: npm run check
       - run: npm run lint
       - run: npm test
+      - run: python3 -m unittest
+        working-directory: lambda
       - env:
           VITE_GROUP_API_URL: ${{ secrets.VITE_GROUP_API_URL }}
-        run: test -n "$VITE_GROUP_API_URL" || { echo "Set the VITE_GROUP_API_URL repository secret (Settings > Secrets and variables > Actions > Secrets)"; exit 1; }
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+        run: test -n "$VITE_GROUP_API_URL" -a -n "$VITE_GOOGLE_CLIENT_ID" || { echo "Set the VITE_GROUP_API_URL and VITE_GOOGLE_CLIENT_ID repository secrets (Settings > Secrets and variables > Actions > Secrets)"; exit 1; }
       - env:
           VITE_GROUP_API_URL: ${{ secrets.VITE_GROUP_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
         run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
