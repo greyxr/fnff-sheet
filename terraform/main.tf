@@ -15,13 +15,8 @@ variable "google_client_id" {
   type = string
 }
 
-variable "admin_email" {
+variable "alert_email" {
   type = string
-}
-
-variable "lambda_concurrency" {
-  type    = number
-  default = -1
 }
 
 variable "monthly_budget_usd" {
@@ -110,15 +105,12 @@ resource "aws_lambda_function" "api" {
   handler       = "handler.handler"
   timeout       = 10
 
-  reserved_concurrent_executions = var.lambda_concurrency
-
   filename         = data.archive_file.lambda.output_path
   source_code_hash = data.archive_file.lambda.output_base64sha256
 
   environment {
     variables = {
-      BUCKET      = aws_s3_bucket.game_data.id
-      ADMIN_EMAIL = var.admin_email
+      BUCKET = aws_s3_bucket.game_data.id
     }
   }
 }
@@ -131,6 +123,7 @@ resource "aws_apigatewayv2_api" "api" {
     allow_origins = var.allowed_origins
     allow_methods = ["GET", "POST", "PUT", "DELETE"]
     allow_headers = ["authorization", "content-type"]
+    max_age       = 3600
   }
 }
 
@@ -168,8 +161,8 @@ resource "aws_apigatewayv2_stage" "default" {
   auto_deploy = true
 
   default_route_settings {
-    throttling_rate_limit  = 2
-    throttling_burst_limit = 10
+    throttling_rate_limit  = 5
+    throttling_burst_limit = 20
   }
 }
 
@@ -193,7 +186,7 @@ resource "aws_budgets_budget" "monthly" {
     threshold                  = 100
     threshold_type             = "PERCENTAGE"
     notification_type          = "ACTUAL"
-    subscriber_email_addresses = [var.admin_email]
+    subscriber_email_addresses = [var.alert_email]
   }
 }
 

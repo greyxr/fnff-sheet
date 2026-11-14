@@ -5,7 +5,8 @@
 *.tfvars
 terraform/handler.zip
 
-# Private book data
+# Private book data and player list
+allowed.json
 ruleset*.json
 rules*.json
 

@@ -9,7 +9,7 @@
   }: {
     title: string
     open?: boolean
-    onconfirm?: () => Promise<void> | void // throw to keep the dialog open and show why; without it the dialog only closes
+    onconfirm: () => Promise<void> | void // throw to keep the dialog open and show why
     children: Snippet
   } = $props()
 
@@ -26,7 +26,7 @@
   async function submit(event: SubmitEvent) {
     event.preventDefault()
     try {
-      await onconfirm?.()
+      await onconfirm()
       open = false
     } catch (e) {
       error = e instanceof Error ? e.message : String(e)
@@ -40,8 +40,8 @@
     <div class="content">{@render children()}</div>
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     <div class="buttons">
-      <button type="button" class="btn" onclick={() => (open = false)}>{onconfirm ? 'Cancel' : 'Close'}</button>
-      {#if onconfirm}<button type="submit" class="btn primary">Create</button>{/if}
+      <button type="button" class="btn" onclick={() => (open = false)}>Cancel</button>
+      <button type="submit" class="btn primary">Create</button>
     </div>
   </form>
 </dialog>

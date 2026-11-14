@@ -34,11 +34,11 @@ class FakeS3:
 
 fake = FakeS3()
 sys.modules["boto3"] = types.SimpleNamespace(client=lambda name: fake)
-os.environ.update(BUCKET="bucket", ADMIN_EMAIL="GM@example.com")
+os.environ.update(BUCKET="bucket")
 import handler  # noqa: E402
 
-GM = {"sub": "1", "email": "gm@example.com", "email_verified": "true", "name": "GM"}
-KAI = {"sub": "2", "email": "kai@example.com", "email_verified": "true", "name": "Kai"}
+GM = {"sub": "1", "email": "GM@example.com", "email_verified": "true"}
+KAI = {"sub": "2", "email": "kai@example.com", "email_verified": "true"}
 
 
 def call(claims, method, path, body=None):
@@ -51,40 +51,25 @@ def call(claims, method, path, body=None):
     return out["statusCode"], json.loads(out["body"]) if "body" in out else None
 
 
-class Accounts(unittest.TestCase):
+class Allowlist(unittest.TestCase):
     def setUp(self):
         fake.objects.clear()
+        fake.objects["allowed.json"] = json.dumps(["gm@EXAMPLE.com"])
 
-    def test_a_new_account_is_shut_out_until_the_admin_approves_it(self):
-        self.assertEqual(call(KAI, "GET", "/me"), (200, {"email": "kai@example.com", "status": "none", "admin": False}))
-        self.assertEqual(call(KAI, "GET", "/campaigns")[0], 403)
-        self.assertEqual(call(KAI, "POST", "/access-request")[1]["status"], "pending")
-        self.assertEqual(call(KAI, "GET", "/campaigns")[0], 403)
-        self.assertEqual(call(GM, "GET", "/users"), (200, [{"sub": "2", "email": "kai@example.com", "name": "Kai", "status": "pending"}]))
-        self.assertEqual(call(GM, "PUT", "/users/2", {"status": "approved"})[1][0]["status"], "approved")
-        self.assertEqual(call(KAI, "GET", "/campaigns"), (200, []))
-        call(GM, "PUT", "/users/2", {"status": "denied"})
-        self.assertEqual(call(KAI, "GET", "/campaigns")[0], 403)
-        self.assertEqual(call(KAI, "POST", "/access-request")[1]["status"], "denied")
-
-    def test_the_admin_needs_no_approval(self):
-        self.assertEqual(call(GM, "GET", "/me")[1], {"email": "gm@example.com", "status": "approved", "admin": True})
+    def test_a_listed_email_gets_in_whatever_its_case(self):
+        self.assertEqual(call(GM, "GET", "/me"), (200, {"email": "gm@example.com"}))
         self.assertEqual(call(GM, "GET", "/campaigns"), (200, []))
 
-    def test_only_the_admin_manages_accounts(self):
-        call(KAI, "POST", "/access-request")
-        self.assertEqual(call(KAI, "GET", "/users")[0], 403)
-        self.assertEqual(call(KAI, "PUT", "/users/2", {"status": "approved"})[0], 403)
-        self.assertEqual(call(GM, "PUT", "/users/9", {"status": "approved"})[0], 404)
-        self.assertEqual(call(GM, "PUT", "/users/2", {"status": "admin"})[0], 400)
+    def test_an_unlisted_email_is_refused_and_told_which_email_it_used(self):
+        self.assertEqual(call(KAI, "GET", "/me"), (403, {"error": "kai@example.com is not on the player list; ask the GM"}))
+        self.assertEqual(call(KAI, "GET", "/campaigns")[0], 403)
+
+    def test_no_list_lets_nobody_in(self):
+        del fake.objects["allowed.json"]
+        self.assertEqual(call(GM, "GET", "/me")[0], 403)
 
     def test_an_unverified_email_is_refused(self):
         self.assertEqual(call({**GM, "email_verified": "false"}, "GET", "/me")[0], 403)
-
-    def test_waiting_requests_are_capped(self):
-        for n in range(handler.MAX_PENDING):
-            self.assertEqual(call({**KAI, "sub": f"s{n}"}, "POST", "/access-request")[0], 200)
-        self.assertEqual(call(KAI, "POST", "/access-request")[0], 429)
 
     def test_a_large_body_is_refused(self):
         self.assertEqual(call(GM, "PUT", "/campaigns", ["x" * handler.MAX_BODY])[0], 413)

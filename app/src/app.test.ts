@@ -4,7 +4,6 @@ import { auth } from './lib/auth.svelte'
 import { roster } from './lib/roster.svelte'
 import { sheet } from './lib/sheet.svelte'
 import App from './App.svelte'
-import Header from './shell/Header.svelte'
 import RosterBar from './shell/RosterBar.svelte'
 import { fakeApi, resetApp, typing } from './test-utils'
 
@@ -36,16 +35,14 @@ describe('roster bar', () => {
 })
 
 describe('gate', () => {
-  it('keeps a new account out until it is approved', async () => {
-    const user = typing()
+  it('lets a listed account in and tells an unlisted one which email it used', async () => {
     auth.clear()
     auth.set('token-kai')
+    const { unmount } = render(App)
+    expect(await screen.findByText('kai@test is not on the player list; ask the GM')).toBeInTheDocument()
+    unmount()
+    auth.set('token-gm')
     render(App)
-    await user.click(await screen.findByRole('button', { name: 'Request access' }))
-    expect(await screen.findByText('Your request is waiting for approval.')).toBeInTheDocument()
-    expect(fakeApi.users['2']).toMatchObject({ email: 'kai@test', status: 'pending' })
-    fakeApi.users['2'].status = 'approved'
-    await user.click(screen.getByRole('button', { name: 'Check again' }))
     await screen.findByRole('button', { name: 'Sign out' })
   })
 
@@ -56,16 +53,12 @@ describe('gate', () => {
     expect(await screen.findByText('Sign in with your Google account.')).toBeInTheDocument()
     expect(auth.token).toBe('')
   })
-})
 
-describe('accounts', () => {
-  it('lets the admin approve a waiting account', async () => {
-    const user = typing()
-    fakeApi.users['2'] = { email: 'kai@test', name: 'Kai', status: 'pending' }
-    render(Header)
-    await user.click(await screen.findByRole('button', { name: 'Accounts (1)' }))
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Approve' }))
-    await waitFor(() => expect(fakeApi.users['2'].status).toBe('approved'))
-    expect(screen.getByRole('button', { name: 'Accounts' })).toBeInTheDocument()
+  it('goes back to the gate when the account is taken off the list', async () => {
+    render(App)
+    await screen.findByRole('button', { name: 'Sign out' })
+    fakeApi.allowed = []
+    await roster.refresh().catch(() => {})
+    expect(await screen.findByText('gm@test is not on the player list; ask the GM')).toBeInTheDocument()
   })
 })

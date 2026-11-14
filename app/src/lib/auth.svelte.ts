@@ -13,8 +13,6 @@ declare const google: {
 
 export interface Me {
   email: string
-  status: 'approved' | 'pending' | 'denied' | 'none'
-  admin: boolean
 }
 
 const KEY = 'fnff_token'
@@ -38,7 +36,10 @@ const loadGoogle = () =>
       google.accounts.id.initialize({ client_id, auto_select: true, callback: (response) => auth.set(response.credential) })
       resolve()
     }
-    script.onerror = () => reject(new Error('Could not load Google sign-in'))
+    script.onerror = () => {
+      loading = undefined
+      reject(new Error('Could not load Google sign-in'))
+    }
     document.head.append(script)
   }))
 

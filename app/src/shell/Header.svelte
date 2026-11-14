@@ -4,7 +4,6 @@
   import { roster } from '../lib/roster.svelte'
   import { loadCharacter, sheet } from '../lib/sheet.svelte'
   import { showToast } from '../lib/toast.svelte'
-  import Users from './Users.svelte'
 
   let fileInput: HTMLInputElement
 
@@ -39,7 +38,6 @@
   <div class="row">
     <button type="button" class="btn" onclick={exportSheet}>↓ Export</button>
     <button type="button" class="btn" onclick={() => fileInput.click()}>↑ Import</button>
-    {#if auth.me?.admin}<Users />{/if}
     <button type="button" class="btn" title={auth.me?.email} onclick={() => auth.signOut()}>Sign out</button>
     <input type="file" accept=".json,application/json" hidden bind:this={fileInput} onchange={importFile} />
   </div>

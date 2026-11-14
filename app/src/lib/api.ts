@@ -18,6 +18,7 @@ export class ApiError extends Error {
 }
 
 // A 401 means the token ran out: get a fresh one and try again, or sign out, which brings the gate back.
+// A 403 means the account is not on the player list: forget who is signed in, which also brings the gate back.
 export async function call<T>(method: string, url: string, body?: unknown, retry = true): Promise<T> {
   const res = await fetch(apiBase() + url, {
     method,
@@ -29,6 +30,7 @@ export async function call<T>(method: string, url: string, body?: unknown, retry
     auth.clear()
     throw new ApiError('Signed out: sign in again', 401)
   }
+  if (res.status === 403) auth.me = null
   if (!res.ok) {
     const reply = await res.json().catch(() => null)
     throw new ApiError(reply?.error || reply?.message || `Server error ${res.status}`, res.status)

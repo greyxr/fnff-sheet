@@ -19,7 +19,7 @@
   const Screen = $derived(screens[route.tab])
 </script>
 
-{#if auth.me?.status === 'approved'}
+{#if auth.me}
   <Header />
   <RosterBar />
   <div class="sticky">
