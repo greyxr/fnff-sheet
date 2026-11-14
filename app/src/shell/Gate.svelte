@@ -32,7 +32,7 @@
     <div class="stack">
       {#if !auth.token}
         <p>Sign in with your Google account.</p>
-        <div bind:this={button}></div>
+        <div class="google" bind:this={button}></div>
       {/if}
       {#if error}<p class="error" role="alert">{error}</p>{/if}
       {#if auth.token}
@@ -43,6 +43,9 @@
 </main>
 
 <style>
+  .google {
+    color-scheme: light;
+  }
   main {
     max-width: 380px;
     margin: 60px auto;
