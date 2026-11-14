@@ -15,15 +15,6 @@ variable "google_client_id" {
   type = string
 }
 
-variable "alert_email" {
-  type = string
-}
-
-variable "monthly_budget_usd" {
-  type    = number
-  default = 5
-}
-
 variable "allowed_origins" {
   type    = list(string)
   default = ["https://greyxr.github.io", "http://127.0.0.1:8000"]
@@ -172,22 +163,6 @@ resource "aws_lambda_permission" "gateway" {
   function_name = aws_lambda_function.api.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*"
-}
-
-resource "aws_budgets_budget" "monthly" {
-  name         = "${var.bucket_name}-monthly"
-  budget_type  = "COST"
-  limit_amount = tostring(var.monthly_budget_usd)
-  limit_unit   = "USD"
-  time_unit    = "MONTHLY"
-
-  notification {
-    comparison_operator        = "GREATER_THAN"
-    threshold                  = 100
-    threshold_type             = "PERCENTAGE"
-    notification_type          = "ACTUAL"
-    subscriber_email_addresses = [var.alert_email]
-  }
 }
 
 output "api_url" {
