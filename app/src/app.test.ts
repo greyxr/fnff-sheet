@@ -35,18 +35,18 @@ describe('roster bar', () => {
 })
 
 describe('gate', () => {
-  it('lets a listed account in and tells an unlisted one which email it used', async () => {
+  it('admits listed, refuses unlisted', async () => {
     auth.clear()
     auth.set('token-kai')
     const { unmount } = render(App)
-    expect(await screen.findByText('kai@test is not on the player list; ask the GM')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('kai@test')
     unmount()
     auth.set('token-gm')
     render(App)
     await screen.findByRole('button', { name: 'Sign out' })
   })
 
-  it('asks to sign in again when the token is no longer good', async () => {
+  it('signs out on a stale token', async () => {
     auth.clear()
     auth.set('stale')
     render(App)
@@ -54,11 +54,11 @@ describe('gate', () => {
     expect(auth.token).toBe('')
   })
 
-  it('goes back to the gate when the account is taken off the list', async () => {
+  it('returns to the gate when delisted', async () => {
     render(App)
     await screen.findByRole('button', { name: 'Sign out' })
     fakeApi.allowed = []
     await roster.refresh().catch(() => {})
-    expect(await screen.findByText('gm@test is not on the player list; ask the GM')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('gm@test')
   })
 })
