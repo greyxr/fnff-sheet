@@ -8,7 +8,7 @@ player list (allowed.json). Anyone else gets 403.
   POST   /campaigns        {"name"} appends; 200 with the list, 409 if it exists
   PUT    /campaigns        body is the whole list (unique names, 1-60 chars); 200 with it
   GET    /ruleset          200 ruleset.json (404 if missing)
-S3: allowed.json (list of emails, missing = nobody), characters/{id}.json, campaigns.json (missing = []), ruleset.json (uploaded separately).
+S3: allowed.json ({"emails": [...]}, missing = nobody), characters/{id}.json, campaigns.json (missing = []), ruleset.json (uploaded separately).
 """
 import json
 import os
@@ -142,7 +142,7 @@ def handler(event, context):
     if str(claims.get("email_verified")).lower() != "true":
         return error(403, "that Google account's email is not verified")
     email = claims["email"].lower()
-    if email not in [e.lower() for e in read_json(ALLOWED, [])]:
+    if email not in [e.lower() for e in read_json(ALLOWED, {}).get("emails", [])]:
         return error(403, f"{email} is not on the player list; ask the GM")
     if len(event.get("body") or "") > MAX_BODY:
         return error(413, "body too large")

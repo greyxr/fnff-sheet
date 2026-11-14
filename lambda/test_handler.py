@@ -54,7 +54,7 @@ def call(claims, method, path, body=None):
 class Allowlist(unittest.TestCase):
     def setUp(self):
         fake.objects.clear()
-        fake.objects["allowed.json"] = json.dumps(["gm@EXAMPLE.com"])
+        fake.objects["allowed.json"] = json.dumps({"emails": ["gm@EXAMPLE.com"]})
 
     def test_a_listed_email_gets_in_whatever_its_case(self):
         self.assertEqual(call(GM, "GET", "/me"), (200, {"email": "gm@example.com"}))
