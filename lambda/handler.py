@@ -143,7 +143,7 @@ def handler(event, context):
         return error(403, "that Google account's email is not verified")
     email = claims["email"].lower()
     if email not in [e.lower() for e in read_json(ALLOWED, {}).get("emails", [])]:
-        return error(403, f"{email} is not on the player list; ask the GM")
+        return error(403, f"{email} is not on the player list")
     if len(event.get("body") or "") > MAX_BODY:
         return error(413, "body too large")
     name = event["requestContext"]["http"]["method"]
