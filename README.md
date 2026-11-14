@@ -18,8 +18,8 @@ Everything else (`screens/`, `shell/`, `lib/`) is the sheet that uses it.
 
 ## Accounts
 
-Players sign in with Google. API Gateway checks the Google token before anything reaches the Lambda, and limits the
-whole API to 5 requests a second. The Lambda then lets in only the emails in `allowed.json` in the bucket; anyone else
+Players sign in with Google. API Gateway checks the Google token before anything reaches the Lambda, and limits each
+method to 5 requests a second. The Lambda then lets in only the emails in `allowed.json` in the bucket; anyone else
 sees their email and "ask the GM". Everyone on the list shares the same characters and campaigns.
 
 To add or remove a player, edit your local `allowed.json` (a JSON list of Google emails, git-ignored) and

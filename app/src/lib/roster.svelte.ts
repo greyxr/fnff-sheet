@@ -52,7 +52,7 @@ class Roster {
   }
 
   start = () => {
-    this.markClean()
+    if (!this.loaded) this.markClean()
     return this.attempt(() => this.refresh())
   }
 
