@@ -20,7 +20,7 @@ export const fakeApi = {
     const reply = (status: number, body?: unknown) => new Response(body === undefined ? null : JSON.stringify(body), { status })
     const email = this.tokens[(init.headers as Record<string, string>).Authorization.replace('Bearer ', '')]
     if (!email) return reply(401, { message: 'Unauthorized' })
-    if (!this.allowed.includes(email)) return reply(403, { error: `${email} is not on the player list; ask the GM` })
+    if (!this.allowed.includes(email)) return reply(403, { error: `${email} is not on the player list` })
     const [kind, id] = new URL(url).pathname.split('/').filter(Boolean)
     const { method } = init
     const body = init.body ? JSON.parse(init.body as string) : undefined

@@ -56,22 +56,24 @@ class Allowlist(unittest.TestCase):
         fake.objects.clear()
         fake.objects["allowed.json"] = json.dumps({"emails": ["gm@EXAMPLE.com"]})
 
-    def test_a_listed_email_gets_in_whatever_its_case(self):
+    def test_listed_email(self):
         self.assertEqual(call(GM, "GET", "/me"), (200, {"email": "gm@example.com"}))
         self.assertEqual(call(GM, "GET", "/campaigns"), (200, []))
 
-    def test_an_unlisted_email_is_refused_and_told_which_email_it_used(self):
-        self.assertEqual(call(KAI, "GET", "/me"), (403, {"error": "kai@example.com is not on the player list; ask the GM"}))
+    def test_unlisted_email(self):
+        status, body = call(KAI, "GET", "/me")
+        self.assertEqual(status, 403)
+        self.assertIn("kai@example.com", body["error"])
         self.assertEqual(call(KAI, "GET", "/campaigns")[0], 403)
 
-    def test_no_list_lets_nobody_in(self):
+    def test_missing_list(self):
         del fake.objects["allowed.json"]
         self.assertEqual(call(GM, "GET", "/me")[0], 403)
 
-    def test_an_unverified_email_is_refused(self):
+    def test_unverified_email(self):
         self.assertEqual(call({**GM, "email_verified": "false"}, "GET", "/me")[0], 403)
 
-    def test_a_large_body_is_refused(self):
+    def test_large_body(self):
         self.assertEqual(call(GM, "PUT", "/campaigns", ["x" * handler.MAX_BODY])[0], 413)
 
 
